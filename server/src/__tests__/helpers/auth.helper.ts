@@ -23,6 +23,18 @@ export const generateTestToken = (user: any) => {
     });
 };
 
+export const generateTestTokens = (user: any) => {
+    const token = generateToken({
+        userId: user.id,
+        email: user.email,
+        authProvider: user.authProvider
+    });
+    
+    return {
+        accessToken: token
+    };
+};
+
 export const getAuthCookie = (token: string) => {
     return `accessToken=${token}`;
 };
