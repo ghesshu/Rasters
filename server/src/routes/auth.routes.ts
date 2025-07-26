@@ -10,7 +10,6 @@ const authController = new AuthController();
 router.post('/register', routeHandler(authController.register));
 router.post('/login', routeHandler(authController.login));
 router.post('/google', routeHandler(authController.googleAuth));
-router.post('/refresh-token', routeHandler(authController.refreshToken));
 
 // Protected routes
 router.post('/logout', authenticate as express.RequestHandler, routeHandler(authController.logout));

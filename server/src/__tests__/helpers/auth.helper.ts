@@ -1,4 +1,4 @@
-import { generateTokens } from '../../utils/jwt.utils';
+import { generateToken } from '../../utils/jwt.utils';
 import User from '../../models/user.model';
 
 export const createTestUser = async (overrides = {}) => {
@@ -15,17 +15,14 @@ export const createTestUser = async (overrides = {}) => {
     return user;
 };
 
-export const generateTestTokens = (user: any) => {
-    return generateTokens({
+export const generateTestToken = (user: any) => {
+    return generateToken({
         userId: user.id,
         email: user.email,
         authProvider: user.authProvider
     });
 };
 
-export const getAuthCookies = (tokens: { accessToken: string; refreshToken: string }) => {
-    return {
-        accessToken: `accessToken=${tokens.accessToken}`,
-        refreshToken: `refreshToken=${tokens.refreshToken}`
-    };
-}; 
+export const getAuthCookie = (token: string) => {
+    return `accessToken=${token}`;
+};

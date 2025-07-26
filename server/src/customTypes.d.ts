@@ -270,3 +270,31 @@ export interface CoinData {
   market_cap_change_24h?: number;
   market_cap_change_percentage_24h?: number;
 }
+
+
+export interface User {
+  _id?: string;
+  id?: string;
+  name: string;
+  email: string;
+  passwordHash?: string;
+  username?: string;
+  googleId?: string;
+  authProvider: 'local' | 'google' | 'wallet';
+  walletAddress?: string;
+  walletType?: 'metamask' | 'walletconnect' | 'phantom' | 'other';
+  isVerified: boolean;
+  verificationToken?: string;
+  verificationTokenExpiry?: Date;
+  preferredModels?: string[];
+  tradingEnabled: boolean;
+  maxTradeAmount?: number;
+  apiCallsToday: number;
+  lastApiCallDate?: Date;
+  subscriptionTier: 'free' | 'basic' | 'pro' | 'enterprise';
+  subscriptionExpiry?: Date;
+  lastLoginAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
+  matchPassword?: (password: string) => Promise<boolean>;
+}
