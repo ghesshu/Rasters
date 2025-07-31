@@ -30,8 +30,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: "*", // Allow all origins instead of config.clientUrl
-    credentials: true,
+    origin: "*",
   })
 );
 
@@ -66,6 +65,6 @@ console.log(PORT);
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
   logger.info(`Client URL: ${config.clientUrl}`);
-}); 
+});
 
 export default app;
