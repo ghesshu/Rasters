@@ -34,12 +34,21 @@ const SignUpModal = ({ open, onClose, onSwitchToSignIn }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!isFormValid) {
+      setError("Please fill in all fields correctly.");
+      return;
+    }
+
     try {
       await handleLocalRegister(name, email, password);
-      onClose();
-      navigate("/chat");
+      // Add a small delay to show success state before navigation
+      setTimeout(() => {
+        onClose();
+        navigate("/chat", { replace: true });
+      }, 500);
     } catch (error) {
-      setError(error.message);
+      setError(error.message || "Registration failed. Please try again.");
     }
   };
 

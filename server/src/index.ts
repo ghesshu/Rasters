@@ -12,6 +12,7 @@ import chatRoutes from "./routes/chat.routes";
 import mongoose, { ConnectOptions } from "mongoose";
 import { DB_URI } from "./config/constants";
 import routes from "./routes";
+import { requestResponseLogger } from "./middleware/request-logger.middleware";
 
 // DB connection
 mongoose
@@ -29,7 +30,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: "*", // Allow all origins instead of config.clientUrl
     credentials: true,
   })
 );
@@ -43,6 +44,8 @@ app.use(compression());
 
 // Logging middleware
 app.use(morganMiddleware);
+// Add detailed request/response logger
+app.use(requestResponseLogger);
 
 app.get("/", (req, res) => {
   res.send("API server started");
@@ -63,6 +66,6 @@ console.log(PORT);
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
   logger.info(`Client URL: ${config.clientUrl}`);
-});
+}); 
 
 export default app;
