@@ -12,10 +12,8 @@ class AuthService {
           name,
           email,
           password,
-        },
-        {
-          withCredentials: true,
         }
+        // Remove withCredentials: true
       );
       return response.data;
     } catch (error) {
@@ -30,10 +28,8 @@ class AuthService {
         {
           email,
           password,
-        },
-        {
-          withCredentials: true,
         }
+        // Remove withCredentials: true
       );
       return response.data;
     } catch (error) {
@@ -45,10 +41,8 @@ class AuthService {
     try {
       const response = await axios.post(
         `${AUTH_API_URL}/google`,
-        { idToken: credential },
-        {
-          withCredentials: true,
-        }
+        { idToken: credential }
+        // Remove withCredentials: true
       );
       return response.data;
     } catch (error) {
@@ -60,10 +54,8 @@ class AuthService {
     try {
       await axios.post(
         `${AUTH_API_URL}/logout`,
-        {},
-        {
-          withCredentials: true,
-        }
+        {}
+        // Remove withCredentials: true
       );
       localStorage.removeItem("user");
     } catch (error) {
@@ -75,10 +67,8 @@ class AuthService {
     try {
       const response = await axios.post(
         `${AUTH_API_URL}/refresh-token`,
-        {},
-        {
-          withCredentials: true,
-        }
+        {}
+        // Remove withCredentials: true
       );
       return response.data;
     } catch (error) {
