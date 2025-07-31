@@ -21,6 +21,7 @@ const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add local loading state
 
   const isFormValid = useMemo(() => {
     return email.trim() !== '' && password.trim() !== '';
@@ -29,12 +30,17 @@ const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true); // Set local loading state
+    
     try {
       await handleLocalLogin(email, password);
+      // Only close modal and navigate after successful authentication
       onClose();
       navigate('/chat');
     } catch (error) {
       setError(error.message);
+    } finally {
+      setIsSubmitting(false); // Reset local loading state
     }
   };
 
@@ -150,7 +156,7 @@ const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
               variant="contained"
               fullWidth
               type="submit"
-              disabled={loading || !isFormValid}
+              disabled={isSubmitting || !isFormValid} // Use local loading state
               sx={{
                 mt: 2,
                 backgroundColor: '#1d9bf0',
@@ -163,7 +169,7 @@ const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
                 },
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign in'}
+              {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Sign in'} {/* Use local loading state */}
             </Button>
 
             <Box sx={{ mt: 4, textAlign: 'center' }}>
