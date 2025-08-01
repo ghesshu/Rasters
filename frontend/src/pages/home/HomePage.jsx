@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { SignInModal, SignUpModal } from "../../components/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import "../../components/home/HomePage.css";
+import logoSrc from "../../assets/logo.png";
 
 const BackgroundElements = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -175,7 +176,7 @@ const HomePageContent = () => {
         >
           <Box
             component="img"
-            src="/src/assets/logo.png"
+            src={logoSrc}
             alt="Rasters Logo"
             sx={{
               width: "60%",

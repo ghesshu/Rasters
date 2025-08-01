@@ -1,33 +1,53 @@
-import React, { useState, useEffect } from "react";
-import { FaUser, FaRobot, FaCopy } from "react-icons/fa";
+import React, { useState, useEffect, memo } from "react";
+import { FaUser, FaRobot, FaCopy, FaCheck } from "react-icons/fa";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "../../contexts/AuthContext";
+ // Import the CSS file
 
-// Define custom CSS variables at the top of the file
-const styles = {
-  userBubbleBg: "#000000", // Black background for user messages
-  copyButtonBlue: "#3b82f6", // Blue color for copy button
+// Design tokens for consistent styling
+const theme = {
+  colors: {
+    user: {
+      bubble: "#6b21a8", // Purple-800
+      avatar: "#9333ea", // Purple-600
+      label: "#f3e8ff", // Purple-50
+      labelText: "#6b21a8", // Purple-800
+    },
+    assistant: {
+      bubble: "#ffffff",
+      bubbleDark: "#1f2937", // Gray-800
+      avatar: "#6b7280", // Gray-500
+      label: "#f9fafb", // Gray-50
+      labelText: "#374151", // Gray-700
+    },
+    actions: {
+      copy: "#3b82f6",
+      success: "#10b981", // Green-500
+    },
+  },
 };
 
-const TypingIndicator = () => (
-  <div className="flex items-center gap-2 py-2">
+// Typing indicator with smooth animation
+const TypingIndicator = memo(() => (
+  <div className="typing-indicator">
     {[0, 1, 2].map((i) => (
       <div
         key={i}
-        className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+        className="typing-dot"
         style={{
-          animationDelay: `${i * 0.2}s`,
-          animation: `pulse 1.5s infinite ${i * 0.2}s`,
+          animationDelay: `${i * 0.15}s`,
         }}
       />
     ))}
-    <span className="ml-2 text-sm text-gray-500">AI is thinking...</span>
+    <span className="typing-text">AI is thinking...</span>
   </div>
-);
+));
+TypingIndicator.displayName = "TypingIndicator";
 
-const StreamingText = ({ content, speed = 20 }) => {
+// Streaming text component with cursor
+const StreamingText = memo(({ content, speed = 15 }) => {
   const [displayedContent, setDisplayedContent] = useState("");
   const [isComplete, setIsComplete] = useState(false);
 
@@ -52,110 +72,125 @@ const StreamingText = ({ content, speed = 20 }) => {
   }, [content, speed]);
 
   return (
-    <div>
-      <ReactMarkdown
-        components={{
-          code({ node, inline, className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || "");
-            return !inline && match ? (
-              <div className="my-2">
-                <SyntaxHighlighter
-                  style={oneDark}
-                  language={match[1]}
-                  PreTag="div"
-                  customStyle={{
-                    borderRadius: "8px",
-                    fontSize: "0.875rem",
-                  }}
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
-              </div>
-            ) : (
-              <code
-                className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono"
-                {...props}
-              >
-                {children}
-              </code>
-            );
-          },
-          p: ({ children }) => (
-            <p className="mb-2 leading-relaxed">{children}</p>
-          ),
-          ul: ({ children }) => <ul className="pl-4 mb-2">{children}</ul>,
-          ol: ({ children }) => <ol className="pl-4 mb-2">{children}</ol>,
-        }}
-      >
-        {displayedContent}
-      </ReactMarkdown>
-      {!isComplete && (
-        <span className="inline-block w-0.5 h-5 bg-blue-500 animate-pulse ml-0.5" />
-      )}
-    </div>
+    <>
+      <MessageContent content={displayedContent} />
+      {!isComplete && <span className="streaming-cursor" />}
+    </>
   );
-};
+});
+StreamingText.displayName = "StreamingText";
 
-const MessageActions = ({ message, onCopy }) => {
+// Message content renderer
+const MessageContent = memo(({ content }) => {
+  const components = {
+    code({ node, inline, className, children, ...props }) {
+      const match = /language-(\w+)/.exec(className || "");
+      return !inline && match ? (
+        <div className="code-block">
+          <div className="code-header">
+            <span>{match[1]}</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(String(children))}
+              className="code-copy-btn"
+            >
+              <FaCopy size={12} />
+            </button>
+          </div>
+          <SyntaxHighlighter
+            style={oneDark}
+            language={match[1]}
+            PreTag="div"
+            customStyle={{
+              margin: 0,
+              borderRadius: 0,
+              fontSize: "0.875rem",
+              padding: "1rem",
+            }}
+            {...props}
+          >
+            {String(children).replace(/\n$/, "")}
+          </SyntaxHighlighter>
+        </div>
+      ) : (
+        <code className="inline-code" {...props}>
+          {children}
+        </code>
+      );
+    },
+    p: ({ children }) => <p className="message-paragraph">{children}</p>,
+    ul: ({ children }) => <ul className="message-list">{children}</ul>,
+    ol: ({ children }) => <ol className="message-list ordered">{children}</ol>,
+    li: ({ children }) => <li className="message-list-item">{children}</li>,
+    blockquote: ({ children }) => (
+      <blockquote className="message-blockquote">{children}</blockquote>
+    ),
+    h1: ({ children }) => <h1 className="message-h1">{children}</h1>,
+    h2: ({ children }) => <h2 className="message-h2">{children}</h2>,
+    h3: ({ children }) => <h3 className="message-h3">{children}</h3>,
+  };
+
+  return <ReactMarkdown components={components}>{content}</ReactMarkdown>;
+});
+MessageContent.displayName = "MessageContent";
+
+// Message actions component
+const MessageActions = memo(({ message, onCopy }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await onCopy(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div
-      className="flex gap-1 mt-2 opacity-100" // Always visible now
-    >
+    <div className="message-actions">
       <button
-        onClick={() => onCopy(message.content)}
-        className="p-1 rounded-md transition-colors"
-        title="Copy message"
-        style={{
-          backgroundColor: styles.copyButtonBlue,
-          color: "white",
-          fontSize: "0.75rem", // Smaller button
-        }}
+        onClick={handleCopy}
+        className={`action-button ${copied ? "copied" : ""}`}
+        title={copied ? "Copied!" : "Copy message"}
       >
-        <FaCopy size={12} /> {/* Smaller icon */}
+        {copied ? (
+          <>
+            <FaCheck size={12} />
+            <span>Copied!</span>
+          </>
+        ) : (
+          <>
+            <FaCopy size={12} />
+            <span>Copy</span>
+          </>
+        )}
       </button>
     </div>
   );
-};
+});
+MessageActions.displayName = "MessageActions";
 
-const MessageBubble = ({ message, onCopy }) => {
-  const { user } = useAuth(); // Get user from AuthContext
-  // Check both type and sender fields to determine if it's a user message
+// Individual message bubble component
+const MessageBubble = memo(({ message, onCopy }) => {
+  const { user } = useAuth();
   const isUser = message.type === "user" || message.sender === "user";
+  const isStreaming = message.streaming && !isUser;
 
   return (
-    <div
-      className={`flex items-start gap-3 mb-6 ${
-        isUser ? "flex-row-reverse" : "flex-row"
-      }`}
-    >
+    <div className={`message-container ${isUser ? "user" : "assistant"}`}>
       {/* Avatar */}
-      <div
-        className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${
-          isUser ? "bg-blue-500" : "bg-gray-600"
-        }`}
-      >
-        {isUser ? <FaUser size={20} /> : <FaRobot size={20} />}
+      <div className={`avatar ${isUser ? "user-avatar" : "assistant-avatar"}`}>
+        {isUser ? <FaUser size={18} /> : <FaRobot size={18} />}
       </div>
 
-      <div className="max-w-3xl min-w-48">
+      <div className="message-wrapper">
         {/* Message Header */}
-        <div
-          className={`flex items-center gap-2 mb-2 ${
-            isUser ? "justify-end" : "justify-start"
-          }`}
-        >
+        <div className="message-header">
           <span
-            className={`px-2 py-1 text-xs rounded-full border ${
-              isUser
-                ? "bg-blue-50 text-blue-700 border-blue-200"
-                : "bg-gray-50 text-gray-700 border-gray-200"
+            className={`message-label ${
+              isUser ? "user-label" : "assistant-label"
             }`}
           >
-            {isUser ? user?.name || "You" : "AI Assistant"}{" "}
-            {/* Use actual username */}
+            {isUser ? user?.name || "You" : "AI Assistant"}
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="message-time">
             {new Date(message.timestamp).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -165,120 +200,68 @@ const MessageBubble = ({ message, onCopy }) => {
 
         {/* Message Content */}
         <div
-          className={`relative p-4 rounded-lg ${
-            isUser
-              ? "text-white"
-              : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          className={`message-bubble ${
+            isUser ? "user-bubble" : "assistant-bubble"
           }`}
-          style={{
-            backgroundColor: isUser ? styles.userBubbleBg : "", // Black background for user messages
-          }}
         >
-          {/* Speech bubble tail */}
-          <div
-            className={`absolute top-2 w-0 h-0 ${
-              isUser
-                ? "right-5 border-l-8 border-l-transparent border-b-8"
-                : "left-5 border-r-8 border-r-transparent border-b-8 border-b-white dark:border-b-gray-800"
-            }`}
-            style={{
-              top: "-8px",
-              borderBottomColor: isUser ? styles.userBubbleBg : "", // Match the bubble color
-            }}
-          />
+          <div className="bubble-tail" />
 
-          {message.streaming &&
-          (message.type === "assistant" || message.sender === "ai") ? (
-            <StreamingText content={message.content} />
-          ) : (
-            <ReactMarkdown
-              components={{
-                code({ node, inline, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  return !inline && match ? (
-                    <div className="my-2">
-                      <SyntaxHighlighter
-                        style={oneDark}
-                        language={match[1]}
-                        PreTag="div"
-                        customStyle={{
-                          borderRadius: "8px",
-                          fontSize: "0.875rem",
-                        }}
-                        {...props}
-                      >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
-                    </div>
-                  ) : (
-                    <code
-                      className={`px-1 py-0.5 rounded text-sm font-mono ${
-                        isUser
-                          ? "bg-blue-400 bg-opacity-30"
-                          : "bg-gray-100 dark:bg-gray-700"
-                      }`}
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  );
-                },
-                p: ({ children }) => (
-                  <p className="mb-2 leading-relaxed last:mb-0">{children}</p>
-                ),
-                ul: ({ children }) => (
-                  <ul className="pl-4 mb-2 list-disc">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="pl-4 mb-2 list-decimal">{children}</ol>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+          <div className="bubble-content">
+            {isStreaming ? (
+              <StreamingText content={message.content} />
+            ) : (
+              <MessageContent content={message.content} />
+            )}
+          </div>
+
+          {/* Message Actions */}
+          {!isStreaming && (
+            <div className="bubble-actions">
+              <MessageActions message={message} onCopy={onCopy} />
+            </div>
           )}
-
-          {/* Message Actions - now always visible */}
-          <MessageActions message={message} onCopy={onCopy} />
         </div>
       </div>
     </div>
   );
-};
+});
+MessageBubble.displayName = "MessageBubble";
 
+// Main chat messages component
 const ChatMessages = ({ messages, isTyping, messageSending }) => {
   const handleCopy = async (content) => {
     try {
       await navigator.clipboard.writeText(content);
-      // You could add a toast notification here
     } catch (error) {
       console.error("Failed to copy:", error);
     }
   };
 
   return (
-    <div className="min-h-full pb-4">
-      {messages.map((message, index) => (
-        <div
-          key={message.id || index}
-          className="animate-in fade-in duration-300"
-          style={{ animationDelay: `${Math.min(index * 100, 500)}ms` }}
-        >
-          <MessageBubble message={message} onCopy={handleCopy} />
-        </div>
-      ))}
+    <div className="chat-messages-container">
+      <div className="chat-messages-inner">
+        {messages.map((message, index) => (
+          <div
+            key={message.id || `message-${index}`}
+            className="message-fade-in"
+            style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+          >
+            <MessageBubble message={message} onCopy={handleCopy} />
+          </div>
+        ))}
 
-      {/* Typing Indicator */}
-      {isTyping && (
-        <div className="flex items-start gap-3 mb-6">
-          <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white">
-            <FaRobot size={20} />
+        {/* Typing Indicator */}
+        {isTyping && (
+          <div className="message-container assistant">
+            <div className="avatar assistant-avatar">
+              <FaRobot size={18} />
+            </div>
+            <div className="typing-bubble">
+              <TypingIndicator />
+            </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-3">
-            <TypingIndicator />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

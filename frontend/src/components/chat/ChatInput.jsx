@@ -70,6 +70,14 @@ const ChatInput = ({
       elevation={0}
       sx={{
         p: 1.5,
+        m: 2, // Adds margin on all sides
+        // OR use specific margin properties:
+        // mt: 2, // margin-top
+        // mb: 2, // margin-bottom
+        // ml: 2, // margin-left
+        // mr: 2, // margin-right
+        // mx: 2, // margin horizontal (left and right)
+        // my: 2, // margin vertical (top and bottom)
         display: "flex",
         alignItems: "flex-end",
         gap: 1,

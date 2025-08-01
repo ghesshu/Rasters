@@ -15,7 +15,7 @@ const INITIAL_MESSAGE = {
 
 const ChatPage = () => {
   const theme = useTheme();
-  const isLargeScreen = useMediaQuery(theme.breakpoints.up('lg')); // lg breakpoint (1200px+)
+  const isLargeScreen = useMediaQuery('(min-width:1024px)');
   
   const [state, setState] = useState({
     selectedModel: "gpt-4",
@@ -24,8 +24,8 @@ const ChatPage = () => {
     loading: true,
     messageSending: false,
     error: null,
-    sidebarOpen: false, // Will be set based on screen size
-    sidebarCollapsed: false, // Add this line
+    sidebarOpen: false,
+    // Remove sidebarCollapsed from state
   });
 
   const [notifications, setNotifications] = useState({
@@ -53,10 +53,12 @@ const ChatPage = () => {
     updateState({ sidebarOpen: !state.sidebarOpen });
   }, [state.sidebarOpen, updateState]);
 
-  // Add sidebar close handler
-  // const handleSidebarClose = useCallback(() => {
-  //   updateState({ sidebarOpen: false });
-  // }, [updateState]);
+  // Remove handleSidebarCollapse function completely
+
+  // Modified sidebar close handler
+  const handleSidebarClose = useCallback(() => {
+    setState(prev => ({ ...prev, sidebarOpen: false }));
+  }, []);
 
   // Enhanced message handling with proper error boundaries
   const handleSendMessage = useCallback(
@@ -258,21 +260,6 @@ const ChatPage = () => {
       ? state.chats[state.activeChat].messages
       : [INITIAL_MESSAGE];
 
-  // Set sidebar open by default on larger screens
-  useEffect(() => {
-    setState(prev => ({ ...prev, sidebarOpen: isLargeScreen }));
-  }, [isLargeScreen]);
-
-  // Remove this duplicate declaration - the original one at line 51 should be kept
-  // const handleSidebarToggle = useCallback(() => {
-  //   setState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
-  // }, []);
-
-  // Modified sidebar close handler
-  const handleSidebarClose = useCallback(() => {
-    setState(prev => ({ ...prev, sidebarOpen: false }));
-  }, []);
-
   return (
     <Box
       sx={{
@@ -284,6 +271,31 @@ const ChatPage = () => {
     >
       <Fade in timeout={300}>
         <Box sx={{ display: "flex", width: "100%", height: "100%" }}>
+          {/* Conditional Sidebar for Large Screens */}
+          {isLargeScreen && state.sidebarOpen && (
+            <Box
+              sx={{
+                width: 280,
+                height: "100%",
+                borderRight: 1,
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                flexShrink: 0,
+              }}
+            >
+              <ChatSidebar
+                onNewChat={handleNewChat}
+                onSelectChat={handleSelectChat}
+                activeChat={state.activeChat}
+                chats={Object.values(state.chats)}
+                loading={state.loading}
+                collapsed={false}
+                onToggleCollapse={() => {}}
+                onClose={undefined} // No close button on large screens
+              />
+            </Box>
+          )}
+
           {/* Main Chat Area */}
           <Box
             sx={{
@@ -307,30 +319,32 @@ const ChatPage = () => {
             />
           </Box>
 
-          {/* Overlay Sidebar using Drawer */}
-          <Drawer
-            anchor="left"
-            open={state.sidebarOpen}
-            onClose={handleSidebarClose}
-            variant={isLargeScreen ? "persistent" : "temporary"} // Persistent on large screens
-            sx={{
-              '& .MuiDrawer-paper': {
-                width: 280,
-                boxSizing: 'border-box',
-              },
-            }}
-          >
-            <ChatSidebar
-              onNewChat={handleNewChat}
-              onSelectChat={handleSelectChat}
-              activeChat={state.activeChat}
-              chats={Object.values(state.chats)}
-              loading={state.loading}
-              collapsed={false}
-              onToggleCollapse={() => {}}
-              onClose={!isLargeScreen ? handleSidebarClose : undefined} // Only show close on small screens
-            />
-          </Drawer>
+          {/* Overlay Sidebar for Small Screens */}
+          {!isLargeScreen && (
+            <Drawer
+              anchor="left"
+              open={state.sidebarOpen}
+              onClose={handleSidebarClose}
+              variant="temporary"
+              sx={{
+                '& .MuiDrawer-paper': {
+                  width: 280,
+                  boxSizing: 'border-box',
+                },
+              }}
+            >
+              <ChatSidebar
+                onNewChat={handleNewChat}
+                onSelectChat={handleSelectChat}
+                activeChat={state.activeChat}
+                chats={Object.values(state.chats)}
+                loading={state.loading}
+                collapsed={false}
+                onToggleCollapse={() => {}}
+                onClose={handleSidebarClose} // Close button for small screens
+              />
+            </Drawer>
+          )}
         </Box>
       </Fade>
 

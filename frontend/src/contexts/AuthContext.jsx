@@ -8,13 +8,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem("token") || null);
 
+  // Add this function to check token validity
+  const isTokenValid = (token) => {
+    if (!token) return false;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      return payload.exp > currentTime;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // Update the useEffect to validate token
   useEffect(() => {
     const initAuth = () => {
       const user = authService.getCurrentUser();
       const storedToken = localStorage.getItem("token");
-      if (user && storedToken) {
+      
+      if (user && storedToken && isTokenValid(storedToken)) {
         setUser(user);
         setToken(storedToken);
+      } else {
+        // Clear invalid auth data
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        setUser(null);
+        setToken(null);
       }
       setLoading(false);
     };
@@ -115,14 +136,16 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // With JWT token auth, we don't need to call the server for logout
-      // Just remove the token from localStorage
+      // Clear auth data
+      setUser(null);
+      setToken(null);
       localStorage.removeItem("user");
       localStorage.removeItem("token");
 
-      // Add navigation to redirect user after logout
-      window.location.href = "/"; // Redirects to home page
+      // Navigate to home instead of using window.location.href
+      // This prevents full page reload and maintains React Router state
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };

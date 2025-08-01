@@ -13,6 +13,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logoSrc from "../../assets/logo.png";
 
 const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
   const { handleLocalLogin, loading } = useAuth();
@@ -85,7 +86,7 @@ const SignInModal = ({ open, onClose, onSwitchToSignUp }) => {
 
           <Box
             component="img"
-            src="/src/assets/logo.png"
+            src={logoSrc}
             alt="Rasters Logo"
             sx={{
               width: '120px',

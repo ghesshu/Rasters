@@ -117,6 +117,7 @@ const ChatMain = ({
         <WelcomeScreen
           onSendMessage={onSendMessage}
           messageSending={messageSending}
+          onSidebarToggle={onSidebarToggle}
         />
       </Box>
     );
