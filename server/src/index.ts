@@ -13,15 +13,13 @@ import mongoose, { ConnectOptions } from "mongoose";
 import { DB_URI } from "./config/constants";
 import routes from "./routes";
 import { requestResponseLogger } from "./middleware/request-logger.middleware";
+import cookieParser from "cookie-parser";
 
 // DB connection
 mongoose
   .set("strictQuery", false)
-  .connect(DB_URI!, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  } as ConnectOptions)
-  .then(() => console.log(`Connected to DB at ${DB_URI}`))
+  .connect(DB_URI!)
+  .then(() => logger.info(`Connected to DB at ${DB_URI}`))
   .catch((error) => console.error(error));
 
 const app = express();
@@ -36,19 +34,54 @@ app.use(
 
 // Body parsing middleware
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 // Compression middleware
 app.use(compression());
 
-// Logging middleware
-app.use(morganMiddleware);
-// Add detailed request/response logger
-app.use(requestResponseLogger);
+// // Logging middleware
+// app.use(morganMiddleware);
+// // Add detailed request/response logger
+// app.use(requestResponseLogger);
+
+// REQUEST LOGGING MIDDLEWARE
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  // Log the incoming request
+  logger.info(`${req.method} ${req.originalUrl}`, {
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    userAgent: req.get("User-Agent"),
+    timestamp: new Date().toISOString(),
+  });
+
+  // Log the response when it finishes
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode}`, {
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+    });
+  });
+
+  next();
+});
 
 app.get("/", (req, res) => {
   res.send("API server started");
 });
+
+// Add this health endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 app.use("/api/auth", routes.AuthRouter);
 
 // Routes
@@ -61,7 +94,7 @@ app.use(errorHandler);
 
 // Start server
 const PORT = config.port;
-console.log(PORT);
+logger.info(PORT);
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} in ${config.nodeEnv} mode`);
   logger.info(`Client URL: ${config.clientUrl}`);

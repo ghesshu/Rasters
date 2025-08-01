@@ -28,7 +28,7 @@ export const authenticate = async (
     const payload = verifyToken(token);
     const user = await User.findById(payload.userId);
 
-    // console.log(user);
+    // logger.info(user);
 
     if (!user) {
       res.status(401).json({ message: "User not found" });
