@@ -6,18 +6,12 @@ import {
   createChat,
 } from "../controllers/chat.controller";
 import { authenticate } from "../middleware/auth.middleware";
-import {
-  handleEnhancedChat,
-  handleStreamingChat,
-} from "../controllers/enhanced-chat.controller";
+import { handleEnhancedChat } from "../controllers/enhanced-chat.controller";
 
 const router = Router();
 
 // Enhanced chat endpoint
 router.post("/chat", authenticate, handleEnhancedChat);
-
-// Streaming chat endpoint
-router.post("/stream", authenticate, handleStreamingChat);
 
 router.post("/chatt", authenticate, handleChat);
 router.get("/chat/history", authenticate, getChatHistory);
