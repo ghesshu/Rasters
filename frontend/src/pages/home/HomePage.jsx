@@ -4,12 +4,11 @@ import {
   Button,
   Typography,
   Container,
-  Divider,
   CircularProgress,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { SignInModal, SignUpModal } from "../../components/auth";
 import { useAuth } from "../../contexts/AuthContext";
+import WalletConnectButton from "../../components/wallet/WalletConnectButton";
 import "../../components/home/HomePage.css";
 import logoSrc from "../../assets/logo.png";
 
@@ -110,24 +109,14 @@ const CRYPTO_SYMBOLS = [
 
 const HomePageContent = () => {
   const navigate = useNavigate();
-  const [signInModalOpen, setSignInModalOpen] = useState(false);
-  const [signUpModalOpen, setSignUpModalOpen] = useState(false);
   const { user, loading } = useAuth();
 
-  const handleOpenSignIn = () => {
-    setSignInModalOpen(true);
-    setSignUpModalOpen(false);
-  };
-
-  const handleOpenSignUp = () => {
-    setSignUpModalOpen(true);
-    setSignInModalOpen(false);
-  };
-
-  const handleCloseModals = () => {
-    setSignInModalOpen(false);
-    setSignUpModalOpen(false);
-  };
+  // If user is already authenticated, redirect to chat
+  useEffect(() => {
+    if (user && !loading) {
+      navigate('/chat');
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -186,7 +175,7 @@ const HomePageContent = () => {
           />
         </Box>
 
-        {/* Right side - Auth */}
+        {/* Right side - Wallet Auth */}
         <Box
           sx={{
             flex: 1,
@@ -196,6 +185,7 @@ const HomePageContent = () => {
             borderRadius: 2,
             backdropFilter: "blur(10px)",
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+            textAlign: "center",
           }}
         >
           <Typography
@@ -204,66 +194,50 @@ const HomePageContent = () => {
             gutterBottom
             fontWeight="bold"
           >
-            Happening now
+            Welcome to Rasters AI
           </Typography>
-          <Typography variant="h5" gutterBottom sx={{ mb: 4 }}>
-            Join today.
+          <Typography variant="h6" gutterBottom sx={{ mb: 4, opacity: 0.8 }}>
+            Connect your wallet to get started with AI-powered crypto trading
           </Typography>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Button
-              variant="contained"
-              fullWidth
-              onClick={handleOpenSignUp}
-              sx={{
-                backgroundColor: "#1d9bf0",
-                "&:hover": {
-                  backgroundColor: "#1a8cd8",
-                },
-              }}
-            >
-              Create account
-            </Button>
-
-            <Typography variant="caption" sx={{ mt: 1, textAlign: "center" }}>
-              By signing up, you agree to the Terms of Service and Privacy
-              Policy, including Cookie Use.
-            </Typography>
-
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                Already have an account?
-              </Typography>
-              <Button
-                variant="outlined"
-                fullWidth
-                onClick={handleOpenSignIn}
-                sx={{
-                  borderColor: "#1d9bf0",
-                  color: "#1d9bf0",
-                  "&:hover": {
-                    borderColor: "#1a8cd8",
-                    backgroundColor: "rgba(29, 155, 240, 0.1)",
-                  },
-                }}
-              >
-                Sign in
-              </Button>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "center" }}>
+            {/* Wallet Connect Button */}
+            <Box sx={{ width: "100%", maxWidth: 300 }}>
+              <WalletConnectButton />
             </Box>
+
+            {/* Features List */}
+            <Box sx={{ mt: 4, textAlign: "left", width: "100%" }}>
+              <Typography variant="h6" gutterBottom sx={{ textAlign: "center", mb: 3 }}>
+                Why Choose Rasters AI?
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Typography sx={{ fontSize: "1.2rem" }}>🤖</Typography>
+                  <Typography variant="body1">AI-powered trading insights</Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Typography sx={{ fontSize: "1.2rem" }}>🔒</Typography>
+                  <Typography variant="body1">Secure wallet-based authentication</Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Typography sx={{ fontSize: "1.2rem" }}>📊</Typography>
+                  <Typography variant="body1">Real-time market analysis</Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <Typography sx={{ fontSize: "1.2rem" }}>⚡</Typography>
+                  <Typography variant="body1">Lightning-fast execution</Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            <Typography variant="caption" sx={{ mt: 3, textAlign: "center", opacity: 0.7 }}>
+              By connecting your wallet, you agree to our Terms of Service and Privacy Policy.
+              No personal information required - just your wallet signature.
+            </Typography>
           </Box>
         </Box>
       </Container>
-
-      <SignInModal
-        open={signInModalOpen}
-        onClose={handleCloseModals}
-        onSwitchToSignUp={handleOpenSignUp}
-      />
-      <SignUpModal
-        open={signUpModalOpen}
-        onClose={handleCloseModals}
-        onSwitchToSignIn={handleOpenSignIn}
-      />
     </Box>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   List,
@@ -46,13 +47,17 @@ const ChatSidebar = ({
   onClose,
 }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [menuState, setMenuState] = useState({ anchorEl: null, chatId: null });
 
   const handleLogout = async () => {
     try {
       await logout();
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Logout failed:", error);
+      // Still navigate to home page even if logout fails
+      navigate("/", { replace: true });
     }
   };
 
@@ -212,6 +217,7 @@ const ChatSidebar = ({
                       sx={{
                         fontWeight: chat.id === activeChat ? 600 : 400,
                         mb: 0.25,
+                        color: chat.id === activeChat ? "white" : "inherit",
                       }}
                     >
                       {chat.title}
@@ -220,12 +226,13 @@ const ChatSidebar = ({
                   secondary={
                     <Typography
                       variant="caption"
-                      color={
-                        chat.id === activeChat
-                          ? "primary.contrastText"
-                          : "text.secondary"
-                      }
-                      sx={{ opacity: 0.8 }}
+                      sx={{
+                        opacity: 0.8,
+                        color:
+                          chat.id === activeChat
+                            ? "rgba(255, 255, 255, 0.8)"
+                            : "text.secondary",
+                      }}
                     >
                       {chat.timestamp}
                     </Typography>
@@ -266,9 +273,9 @@ const ChatSidebar = ({
       {/* Bottom Actions */}
       <Box sx={{ p: 2, borderTop: 1, borderColor: "divider" }}>
         {/* Wallet Connection */}
-        <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+        {/* <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
           <WalletConnectButton />
-        </Box>
+        </Box> */}
 
         {/* User Profile Section */}
         <Box
@@ -306,16 +313,13 @@ const ChatSidebar = ({
               }
             >
               <IconButton size="small" sx={{ mr: 1 }}>
-                <PersonIcon />
+                {/* <PersonIcon /> */}
               </IconButton>
             </Badge>
 
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography variant="body2" fontWeight="600" noWrap>
                 {user?.name || "User"}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" noWrap>
-                {user?.email || "user@example.com"}
               </Typography>
             </Box>
           </Box>

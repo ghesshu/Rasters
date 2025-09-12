@@ -1,174 +1,101 @@
 import { Request, Response } from "express";
 import { UserModel } from "../models";
-import crypto from "crypto";
-import { OAuth2Client } from "google-auth-library";
 import { generateToken } from "../utils/jwt.utils";
-import { authConfig } from "../config/auth.config";
 import { logger } from "../utils/logger";
-
-const googleClient = new OAuth2Client(authConfig.google.clientId);
+import { ethers } from "ethers";
 
 export default class AuthController {
-  // Local Authentication
-  async register(req: Request, res: Response) {
+  // Wallet Authentication
+  async walletAuth(req: Request, res: Response) {
     try {
-      const { email, password, name } = req.body;
+      const { walletAddress, signature, message, walletType, name } = req.body;
 
-      // Check if user already exists
-      const existingUser = await UserModel.findOne({ email });
-      if (existingUser) {
-        return res.status(409).json({ message: "User already exists" });
+      // Verify the signature to ensure the user owns the wallet
+      const recoveredAddress = ethers.utils.verifyMessage(message, signature);
+      
+      if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        return res.status(401).json({ message: "Invalid wallet signature" });
       }
 
-      // Create new user
-      const user = new UserModel({
-        email,
-        passwordHash: password, // Will be hashed by pre-save hook
-        name,
-        authProvider: "local",
-        isVerified: false, // We'll implement email verification later
-      });
-
-      await user.save();
-
-      // Generate token
-      const token = generateToken({
-        userId: user.id,
-        email: user.email,
-        authProvider: user.authProvider,
-      });
-
-      return res.status(201).json({
-        message: "Registration successful",
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          authProvider: user.authProvider,
-        },
-      });
-    } catch (error: any) {
-      return res
-        .status(500)
-        .json({ message: "Registration failed", error: error.message });
-    }
-  }
-
-  async login(req: Request, res: Response) {
-    try {
-      const { email, password } = req.body;
-
-      // Find user
-      const user = await UserModel.findOne({ email });
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Verify password
-      if (!user.matchPassword) {
-        return res
-          .status(500)
-          .json({ message: "Password verification not available" });
-      }
-
-      const isValidPassword = await user.matchPassword(password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Generate token
-      const token = generateToken({
-        userId: user.id,
-        email: user.email,
-        authProvider: user.authProvider,
-      });
-
-      return res.json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          authProvider: user.authProvider,
-        },
-      });
-    } catch (error: any) {
-      return res
-        .status(500)
-        .json({ message: "Login failed", error: error.message });
-    }
-  }
-
-  // Google Authentication
-  async googleAuth(req: Request, res: Response) {
-    try {
-      const { idToken } = req.body;
-
-      logger.info("Received request body:", req.body);
-      logger.info("Google Client ID:", authConfig.google.clientId);
-
-      // Verify Google token
-      const ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: authConfig.google.clientId,
-      });
-
-      const payload = ticket.getPayload();
-      if (!payload) {
-        return res.status(401).json({ message: "Invalid Google token" });
-      }
-
-      const { email, name } = payload;
-
-      // Find or create user
-      let user = await UserModel.findOne({ email });
+      // Find or create user based on wallet address
+      let user = await UserModel.findOne({ walletAddress: walletAddress.toLowerCase() });
 
       if (!user) {
+        // Create new user with wallet
         user = new UserModel({
-          email,
-          name,
-          authProvider: "google",
-          isVerified: true, // Google accounts are pre-verified
-          googleId: payload.sub,
+          walletAddress: walletAddress.toLowerCase(),
+          walletType,
+          name: name || `User ${walletAddress.slice(0, 6)}`,
+          authProvider: "wallet",
         });
+        await user.save();
+      } else {
+        // Update last login
+        user.lastLoginAt = new Date();
         await user.save();
       }
 
       // Generate token
       const token = generateToken({
         userId: user.id,
-        email: user.email,
+        email: user.email || '',
         authProvider: user.authProvider,
       });
 
       return res.json({
-        message: "Google authentication successful",
+        message: "Wallet authentication successful",
         token,
         user: {
           id: user.id,
-          email: user.email,
           name: user.name,
+          email: user.email,
+          walletAddress: user.walletAddress,
+          walletType: user.walletType,
           authProvider: user.authProvider,
         },
       });
     } catch (error: any) {
+      logger.error('Wallet auth error:', error);
       return res
         .status(500)
         .json({
-          message: "Google authentication failed",
+          message: "Wallet authentication failed",
           error: error.message,
         });
     }
   }
 
-  // Logout - client-side only now
+  // Get nonce for wallet signature
+  async getNonce(req: Request, res: Response) {
+    try {
+      const { walletAddress } = req.params;
+      
+      // Generate a unique nonce for this wallet
+      const nonce = `Sign this message to authenticate with Rasters AI: ${Date.now()}`;
+      
+      return res.json({
+        nonce,
+        message: `Welcome to Rasters AI!\n\nClick to sign in and accept the Terms of Service.\n\nThis request will not trigger a blockchain transaction or cost any gas fees.\n\nWallet address:\n${walletAddress}\n\nNonce:\n${Date.now()}`
+      });
+    } catch (error: any) {
+      return res
+        .status(500)
+        .json({ message: "Failed to generate nonce", error: error.message });
+    }
+  }
+
+  // Logout for wallet authentication
   async logout(req: Request, res: Response) {
     try {
-      // With JWT Bearer tokens, logout is handled client-side by removing the token
-      return res.json({ message: "Logout successful" });
+      // For wallet auth, we mainly just confirm the logout
+      // JWT tokens are stateless, so no server-side session to clear
+      logger.info('User logged out successfully');
+      return res.json({ 
+        message: "Logout successful",
+        timestamp: new Date().toISOString()
+      });
     } catch (error: any) {
+      logger.error('Logout failed:', error);
       return res
         .status(500)
         .json({ message: "Logout failed", error: error.message });

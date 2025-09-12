@@ -1,33 +1,28 @@
 import mongoose from 'mongoose';
 import { User } from '../customTypes';
-import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema<User>({
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    passwordHash: { type: String },
+    email: { type: String }, // Made optional since wallet users might not have email
     username: { type: String },
     
-    // OAuth providers
-    googleId: { type: String },
-    authProvider: { 
-        type: String, 
-        enum: ['local', 'google', 'wallet'],
-        required: true,
-        default: 'local'
-    },
-    
-    // Wallet information
-    walletAddress: { type: String },
+    // Wallet information - now required
+    walletAddress: { type: String, required: true, unique: true },
     walletType: { 
         type: String,
-        enum: ['metamask', 'walletconnect', 'phantom', 'other']
+        enum: ['metamask', 'walletconnect', 'phantom', 'other'],
+        required: true
     },
     
-    // Email verification
-    isVerified: { type: Boolean, default: false },
-    verificationToken: { type: String },
-    verificationTokenExpiry: { type: Date },
+    // Remove OAuth providers since we're going wallet-only
+    authProvider: { 
+        type: String, 
+        enum: ['wallet'],
+        required: true,
+        default: 'wallet'
+    },
+    
+    // Remove email verification since it's not needed for wallet auth
     
     // Crypto trading preferences
     preferredModels: [{ type: String }],
@@ -51,17 +46,8 @@ const userSchema = new mongoose.Schema<User>({
     timestamps: true // This automatically adds createdAt and updatedAt fields
 });
 
-userSchema.pre("save", async function (next) {
-    if (this.isModified("passwordHash") && this.passwordHash) {
-        const salt = await bcrypt.genSalt(10);
-        this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
-    }
-    next();
-});
+// Remove password-related methods since we don't need them anymore
 
-userSchema.methods.matchPassword = async function (enteredPassword: string) {
-    if (!this.passwordHash) return false;
-    return await bcrypt.compare(enteredPassword, this.passwordHash);
-};
-
-export default mongoose.model<User>('User', userSchema);
+const UserModel = mongoose.model<User>('User', userSchema);
+export { UserModel };
+export default UserModel;

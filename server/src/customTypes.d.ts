@@ -276,16 +276,11 @@ export interface User {
   _id?: string;
   id?: string;
   name: string;
-  email: string;
-  passwordHash?: string;
+  email?: string; // Made optional
   username?: string;
-  googleId?: string;
-  authProvider: 'local' | 'google' | 'wallet';
-  walletAddress?: string;
-  walletType?: 'metamask' | 'walletconnect' | 'phantom' | 'other';
-  isVerified: boolean;
-  verificationToken?: string;
-  verificationTokenExpiry?: Date;
+  authProvider: 'wallet'; // Only wallet auth now
+  walletAddress: string; // Required
+  walletType: 'metamask' | 'walletconnect' | 'phantom' | 'other'; // Required
   preferredModels?: string[];
   tradingEnabled: boolean;
   maxTradeAmount?: number;
@@ -296,5 +291,4 @@ export interface User {
   lastLoginAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
-  matchPassword?: (password: string) => Promise<boolean>;
 }

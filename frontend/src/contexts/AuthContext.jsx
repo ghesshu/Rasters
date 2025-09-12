@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import authService from "../services/auth.service";
+import { useAccount, useSignMessage } from "wagmi";
 
 const AuthContext = createContext(null);
 
@@ -7,8 +8,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem("token") || null);
+  
+  const { address, isConnected } = useAccount();
+  const { signMessageAsync } = useSignMessage();
 
-  // Add this function to check token validity
+  // Check token validity
   const isTokenValid = (token) => {
     if (!token) return false;
     
@@ -21,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update the useEffect to validate token
+  // Initialize auth state
   useEffect(() => {
     const initAuth = () => {
       const user = authService.getCurrentUser();
@@ -31,7 +35,6 @@ export const AuthProvider = ({ children }) => {
         setUser(user);
         setToken(storedToken);
       } else {
-        // Clear invalid auth data
         localStorage.removeItem("user");
         localStorage.removeItem("token");
         setUser(null);
@@ -43,92 +46,48 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, []);
 
-  const handleGoogleLogin = async (response) => {
+  // Handle wallet authentication
+  const handleWalletAuth = async (walletType = 'metamask', userName) => {
     try {
       setLoading(true);
-      // Handle both direct token and credential object cases
-      const idToken =
-        typeof response === "string" ? response : response.credential;
+      
+      if (!address || !isConnected) {
+        throw new Error('Wallet not connected');
+      }
 
-      // Send the ID token to your backend
-      const result = await authService.googleLogin(idToken);
-      console.log("Backend response:", result);
-
-      // Store user data and JWT token
-      const userData = {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-        imageUrl: result.user.imageUrl,
-      };
-      setUser(userData);
-      setToken(result.token);
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("token", result.token);
-
-      // Show success message
-      alert(
-        `Successfully authenticated!\nWelcome ${userData.name}\nEmail: ${userData.email}`
+      // Get nonce from backend
+      const { message } = await authService.getNonce(address);
+      
+      // Sign the message
+      const signature = await signMessageAsync({ message });
+      
+      // Authenticate with backend
+      const result = await authService.walletAuth(
+        address,
+        signature,
+        message,
+        walletType,
+        userName
       );
 
+      // Store user data and JWT token
+      const userData = {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        walletAddress: result.user.walletAddress,
+        walletType: result.user.walletType,
+      };
+      
+      setUser(userData);
+      setToken(result.token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", result.token);
+
       return result;
     } catch (error) {
-      console.error("Google login failed:", error);
-      const errorMessage = error.response?.data?.message || error.message;
-      alert("Authentication failed: " + errorMessage);
+      console.error("Wallet authentication failed:", error);
       throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLocalLogin = async (email, password) => {
-    try {
-      setLoading(true);
-      const result = await authService.login(email, password);
-
-      // Store user data and JWT token
-      const userData = {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-      };
-      setUser(userData);
-      setToken(result.token);
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("token", result.token);
-
-      return result;
-    } catch (error) {
-      console.error("Local login failed:", error);
-      const errorMessage = error.response?.data?.message || error.message;
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLocalRegister = async (name, email, password) => {
-    try {
-      setLoading(true);
-      const result = await authService.register(name, email, password);
-
-      // Store user data and JWT token
-      const userData = {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-      };
-      setUser(userData);
-      setToken(result.token);
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("token", result.token);
-
-      return result;
-    } catch (error) {
-      console.error("Local registration failed:", error);
-      const errorMessage = error.response?.data?.message || error.message;
-      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -136,14 +95,11 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Clear auth data
+      await authService.logout();
       setUser(null);
       setToken(null);
       localStorage.removeItem("user");
       localStorage.removeItem("token");
-
-      // Navigate to home instead of using window.location.href
-      // This prevents full page reload and maintains React Router state
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -154,9 +110,7 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     loading,
-    handleGoogleLogin,
-    handleLocalLogin,
-    handleLocalRegister,
+    handleWalletAuth,
     logout,
   };
 

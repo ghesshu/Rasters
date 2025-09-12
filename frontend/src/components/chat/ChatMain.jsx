@@ -31,7 +31,23 @@ const ChatMain = ({
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
-  const isNewChat = messages.length <= 1 && messages[0]?.id === "welcome";
+  const [hasStartedChat, setHasStartedChat] = useState(false);
+
+  // Better logic for determining if we should show welcome screen
+  const isNewChat =
+    !hasStartedChat &&
+    (messages.length === 0 ||
+      (messages.length === 1 && messages[0]?.id === "welcome"));
+
+  // Track when user starts chatting
+  useEffect(() => {
+    const hasUserMessage = messages.some(
+      (msg) => msg.type === "user" || msg.sender === "user"
+    );
+    if (hasUserMessage && !hasStartedChat) {
+      setHasStartedChat(true);
+    }
+  }, [messages, hasStartedChat]);
 
   const scrollToBottom = (behavior = "smooth") => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -47,6 +63,15 @@ const ChatMain = ({
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
     setIsScrolledUp(!isAtBottom);
+  };
+
+  // Enhanced message send handler to ensure smooth transition
+  const handleSendMessage = async (message) => {
+    // Immediately switch to conversation view when user sends first message
+    if (!hasStartedChat) {
+      setHasStartedChat(true);
+    }
+    await onSendMessage(message);
   };
 
   // Loading skeleton for initial load
@@ -115,7 +140,7 @@ const ChatMain = ({
         }}
       >
         <WelcomeScreen
-          onSendMessage={onSendMessage}
+          onSendMessage={handleSendMessage}
           messageSending={messageSending}
           onSidebarToggle={onSidebarToggle}
         />

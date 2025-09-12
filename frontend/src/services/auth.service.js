@@ -4,46 +4,24 @@ const API_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const AUTH_API_URL = `${API_URL}/api/auth`;
 
 class AuthService {
-  async register(name, email, password) {
+  async getNonce(walletAddress) {
     try {
-      const response = await axios.post(
-        `${AUTH_API_URL}/register`,
-        {
-          name,
-          email,
-          password,
-        }
-        // Remove withCredentials: true
-      );
+      const response = await axios.get(`${AUTH_API_URL}/nonce/${walletAddress}`);
       return response.data;
     } catch (error) {
       throw error;
     }
   }
 
-  async login(email, password) {
+  async walletAuth(walletAddress, signature, message, walletType, name) {
     try {
-      const response = await axios.post(
-        `${AUTH_API_URL}/login`,
-        {
-          email,
-          password,
-        }
-        // Remove withCredentials: true
-      );
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async googleLogin(credential) {
-    try {
-      const response = await axios.post(
-        `${AUTH_API_URL}/google`,
-        { idToken: credential }
-        // Remove withCredentials: true
-      );
+      const response = await axios.post(`${AUTH_API_URL}/wallet`, {
+        walletAddress,
+        signature,
+        message,
+        walletType,
+        name
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -52,26 +30,16 @@ class AuthService {
 
   async logout() {
     try {
-      await axios.post(
-        `${AUTH_API_URL}/logout`,
-        {}
-        // Remove withCredentials: true
-      );
+      await axios.post(`${AUTH_API_URL}/logout`, {});
+      // Clear all authentication data
       localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      // Optional: Clear any wallet connection state if needed
+      // This depends on your wallet connector implementation
     } catch (error) {
-      throw error;
-    }
-  }
-
-  async refreshToken() {
-    try {
-      const response = await axios.post(
-        `${AUTH_API_URL}/refresh-token`,
-        {}
-        // Remove withCredentials: true
-      );
-      return response.data;
-    } catch (error) {
+      // Even if the server call fails, clear local storage
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
       throw error;
     }
   }
