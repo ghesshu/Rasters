@@ -11,7 +11,8 @@ import userRoutes from "./routes/user.routes";
 import chatRoutes from "./routes/chat.routes";
 import mongoose, { ConnectOptions } from "mongoose";
 import { DB_URI } from "./config/constants";
-import routes from "./routes";
+// Remove this unused import
+// import routes from "./routes";
 import { requestResponseLogger } from "./middleware/request-logger.middleware";
 import cookieParser from "cookie-parser";
 
@@ -82,7 +83,7 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-app.use("/api/auth", routes.AuthRouter);
+// app.use("/api/auth", routes.AuthRouter);
 
 // Routes
 app.use("/api/auth", authRoutes);

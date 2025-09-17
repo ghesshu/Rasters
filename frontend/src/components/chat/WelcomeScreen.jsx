@@ -134,7 +134,7 @@ const WelcomeScreen = ({ onSendMessage, messageSending, onSidebarToggle }) => {
               {/* Logo */}
               <Box
                 component="img"
-                src="/src/assets/logo.png"
+                src={logoSrc}
                 alt="Rasters Logo"
                 sx={{
                   width: 70,
@@ -158,7 +158,8 @@ const WelcomeScreen = ({ onSendMessage, messageSending, onSidebarToggle }) => {
                   textAlign: "center",
                   mb: 2,
                   fontWeight: 700,
-                  background: "linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)",
+                  background:
+                    "linear-gradient(45deg, #1976d2 30%, #9c27b0 90%)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
@@ -178,8 +179,8 @@ const WelcomeScreen = ({ onSendMessage, messageSending, onSidebarToggle }) => {
                   lineHeight: 1.6,
                 }}
               >
-                I'm your AI assistant specialized in blockchain, DeFi, and crypto
-                markets. Ask me anything or explore the topics below.
+                I'm your AI assistant specialized in blockchain, DeFi, and
+                crypto markets. Ask me anything or explore the topics below.
               </Typography>
 
               {/* Input Area */}

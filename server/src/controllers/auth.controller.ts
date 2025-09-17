@@ -10,10 +10,38 @@ export default class AuthController {
     try {
       const { walletAddress, signature, message, walletType, name } = req.body;
 
+      // Log the received data for debugging
+      logger.info('Wallet auth attempt:', { 
+        walletAddress, 
+        messageLength: message?.length,
+        signatureLength: signature?.length,
+        walletType 
+      });
+
+      // Validate required fields
+      if (!walletAddress || !signature || !message) {
+        return res.status(400).json({ 
+          message: "Missing required fields: walletAddress, signature, and message are required" 
+        });
+      }
+
       // Verify the signature to ensure the user owns the wallet
-      const recoveredAddress = ethers.utils.verifyMessage(message, signature);
+      let recoveredAddress;
+      try {
+        recoveredAddress = ethers.utils.verifyMessage(message, signature);
+      } catch (signatureError: any) {
+        logger.error('Signature verification failed:', signatureError);
+        return res.status(401).json({ 
+          message: "Invalid signature format or verification failed",
+          error: signatureError.message 
+        });
+      }
       
       if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+        logger.warn('Address mismatch:', { 
+          expected: walletAddress.toLowerCase(), 
+          recovered: recoveredAddress.toLowerCase() 
+        });
         return res.status(401).json({ message: "Invalid wallet signature" });
       }
 
