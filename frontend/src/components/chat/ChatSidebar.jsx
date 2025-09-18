@@ -32,6 +32,7 @@ import {
   Archive as ArchiveIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
+import { useDisconnect } from "wagmi";
 import { useAuth } from "../../contexts/AuthContext";
 import WalletConnectButton from "../wallet/WalletConnectButton";
 import logoSrc from "../../assets/logo.png";
@@ -47,16 +48,19 @@ const ChatSidebar = ({
   onClose,
 }) => {
   const { user, logout } = useAuth();
+  const { disconnect } = useDisconnect();
   const navigate = useNavigate();
   const [menuState, setMenuState] = useState({ anchorEl: null, chatId: null });
 
   const handleLogout = async () => {
     try {
       await logout();
+      disconnect(); // Disconnect the wallet
       navigate("/", { replace: true });
     } catch (error) {
       console.error("Logout failed:", error);
-      // Still navigate to home page even if logout fails
+      // Still disconnect wallet and navigate even if logout fails
+      disconnect();
       navigate("/", { replace: true });
     }
   };

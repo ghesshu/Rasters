@@ -14,9 +14,12 @@ const WalletConnectButton = () => {
   
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
+  // Check if Phantom is installed - this takes priority over everything
+  const isPhantomInstalled = window?.phantom?.ethereum;
+
   const handleConnect = () => {
     // Check if Phantom is installed
-    if (!window?.phantom?.ethereum) {
+    if (!isPhantomInstalled) {
       // Redirect to Phantom installation page
       window.open('https://phantom.app/', '_blank');
       return;
@@ -60,7 +63,28 @@ const WalletConnectButton = () => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  // If user is authenticated
+  // FORCE Install Phantom if Phantom is not detected - this overrides all other states
+  if (!isPhantomInstalled) {
+    return (
+      <Button
+        variant="contained"
+        size="small"
+        startIcon={<WalletIcon />}
+        onClick={handleConnect}
+        disabled={isPending}
+        sx={{
+          borderRadius: 2,
+          textTransform: "none",
+          bgcolor: "warning.main",
+          "&:hover": { bgcolor: "warning.dark" },
+        }}
+      >
+        Install Phantom
+      </Button>
+    );
+  }
+
+  // If user is authenticated and Phantom is installed
   if (user && isConnected && address) {
     return (
       <Button
@@ -87,7 +111,7 @@ const WalletConnectButton = () => {
     );
   }
 
-  // If wallet is connected but user is not authenticated
+  // If wallet is connected but user is not authenticated (and Phantom is installed)
   if (isConnected && address && !user) {
     return (
       <Button
@@ -108,7 +132,7 @@ const WalletConnectButton = () => {
     );
   }
 
-  // If wallet is not connected
+  // If wallet is not connected (and Phantom is installed)
   return (
     <Button
       variant="contained"
@@ -123,7 +147,7 @@ const WalletConnectButton = () => {
         "&:hover": { bgcolor: "primary.dark" },
       }}
     >
-      {isPending ? "Connecting..." : window?.phantom?.ethereum ? "Connect Phantom" : "Install Phantom"}
+      {isPending ? "Connecting..." : "Connect Phantom"}
     </Button>
   );
 };
