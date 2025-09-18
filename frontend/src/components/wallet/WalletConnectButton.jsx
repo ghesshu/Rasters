@@ -15,7 +15,17 @@ const WalletConnectButton = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const handleConnect = () => {
-    const connector = connectors.find((c) => c.name === "MetaMask") || connectors[0];
+    // Check if Phantom is installed
+    if (!window?.phantom?.ethereum) {
+      // Redirect to Phantom installation page
+      window.open('https://phantom.app/', '_blank');
+      return;
+    }
+
+    // Look for Phantom first, then fall back to injected wallets
+    const connector = connectors.find((c) => c.name === "Phantom") || 
+                   connectors.find((c) => c.name === "Injected") || 
+                   connectors[0];
     if (connector) {
       connect({ connector });
     }
@@ -26,7 +36,7 @@ const WalletConnectButton = () => {
       setIsAuthenticating(true);
       // Generate a default name based on wallet address
       const defaultName = `User ${address.slice(0, 6)}`;
-      await handleWalletAuth('metamask', defaultName);
+      await handleWalletAuth('phantom', defaultName);
       navigate('/chat');
     } catch (error) {
       console.error('Authentication failed:', error);
@@ -113,7 +123,7 @@ const WalletConnectButton = () => {
         "&:hover": { bgcolor: "primary.dark" },
       }}
     >
-      {isPending ? "Connecting..." : "Connect Wallet"}
+      {isPending ? "Connecting..." : window?.phantom?.ethereum ? "Connect Phantom" : "Install Phantom"}
     </Button>
   );
 };

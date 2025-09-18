@@ -1,19 +1,21 @@
 import { createConfig, http } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
 import {
-  metaMask,
   injected,
   walletConnect,
   coinbaseWallet,
 } from "wagmi/connectors";
 
-// Enhanced config with multiple wallet connectors
+// Enhanced config with Phantom wallet support
 export const config = createConfig({
   chains: [mainnet, sepolia],
   connectors: [
-    metaMask(),
+    injected({ 
+      target: 'phantom',
+      shimDisconnect: true 
+    }), // Phantom wallet connector
     walletConnect({
-      projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID, // Get this from https://cloud.walletconnect.com
+      projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
       metadata: {
         name: "Rasters AI",
         description: "AI-powered crypto trading platform",

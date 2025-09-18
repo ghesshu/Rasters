@@ -6,37 +6,27 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
-  
+
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
 
-  // Check token validity
-  const isTokenValid = (token) => {
-    if (!token) return false;
-    
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // Initialize auth state
   useEffect(() => {
-    const initAuth = () => {
-      const user = authService.getCurrentUser();
-      const storedToken = localStorage.getItem("token");
-      
-      if (user && storedToken && isTokenValid(storedToken)) {
-        setUser(user);
-        setToken(storedToken);
-      } else {
-        localStorage.removeItem("user");
+    const initAuth = async () => {
+      try {
+        const storedToken = localStorage.getItem("token");
+        const storedUser = localStorage.getItem("user");
+
+        if (storedToken && storedUser) {
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        // Clear invalid stored data
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setUser(null);
         setToken(null);
       }
@@ -47,14 +37,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Handle wallet authentication
-  const handleWalletAuth = async (walletType = 'metamask', userName) => {
+  const handleWalletAuth = async (walletType = 'phantom', userName) => {
     try {
       setLoading(true);
       
       if (!address || !isConnected) {
         throw new Error('Wallet not connected');
       }
-
+  
       // Get nonce from backend
       const { message } = await authService.getNonce(address);
       
@@ -78,11 +68,13 @@ export const AuthProvider = ({ children }) => {
         walletAddress: result.user.walletAddress,
         walletType: result.user.walletType,
       };
-      
+
       setUser(userData);
       setToken(result.token);
-      localStorage.setItem("user", JSON.stringify(userData));
+
+      // Store in localStorage
       localStorage.setItem("token", result.token);
+      localStorage.setItem("user", JSON.stringify(userData));
 
       return result;
     } catch (error) {
@@ -95,14 +87,19 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authService.logout();
+      setLoading(true);
+      
+      // Clear local storage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      
+      // Clear state
       setUser(null);
       setToken(null);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
     } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
+      console.error("Logout error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
